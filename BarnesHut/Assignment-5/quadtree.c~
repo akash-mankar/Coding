@@ -1,0 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "barnesHut.h"
+
+extern nodeData myData;

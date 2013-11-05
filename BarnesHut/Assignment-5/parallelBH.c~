@@ -1,0 +1,35 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "barnesHut.h"
+
+extern int cSize, myRank;
+extern int numIterations,  numBodies;
+extern float deltaTime;
+
+int readInputFile(const char* inputFileName)
+{
+  FILE* fp = fopen(inputFileName, "r");
+  int idx, tempX, tempY, tempWt, tempVx, tempVy;
+
+  if (fp == NULL)
+  {
+    printf("Could not open inputFile: %s.\n", inputFileName);
+    return -1;
+  }
+
+  fscanf(fp, "%d", &numBodies);
+  
+  for (idx = 0; idx < numBodies; idx++)
+  {
+    fscanf(fp, "%lg", &tempX);
+    fscanf(fp, "%lg", &tempY);
+    fscanf(fp, "%lg", &tempWt);
+    fscanf(fp, "%lg", &tempVx);
+    fscanf(fp, "%lg", &tempVy);
+    
+    struct body* tempBody = new body(tempX, tempY, tempWt, tempVx, tempVy);
+
+    sendObjectToAppropriateProc(tempBody);
+  }
+}

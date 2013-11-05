@@ -1,0 +1,34 @@
+#pragma once
+
+#include "barnesHut.h"
+#include <pthread.h>
+
+#define MAX_Q_SIZE 1000
+
+struct qItem
+{
+  struct node* aBody;
+  int procRank;
+};
+
+struct Queue
+{
+  struct qItem q_items[MAX_Q_SIZE];
+  int q_head;
+  int q_tail;
+  int q_isInit;
+};
+
+// This method initializes the queue - should be called only once per queue 
+void q_init();
+
+// This method inserts 'item' to the bottom of the queue
+// If the queue is full, this method sleeps till space is
+// available, and then inserts the item to the bottom of the queue
+void q_insert(const struct qItem* item);
+
+// This method fetches 'numToFetch' entries from the top of the queue
+void q_get(int numToFetch);
+
+// This method removes 'numFetch' entries from the top of the queue
+void q_remove(int numToRemove);

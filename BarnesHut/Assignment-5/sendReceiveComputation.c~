@@ -1,0 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "sendReceiveComputation.h"
+
+struct Queue computeQ;
+pthread_mutex_t q_lock = PTHREAD_MUTEX_INITIALIZER;
+
+void q_init(struct Queue* q)
+{
+  
+}

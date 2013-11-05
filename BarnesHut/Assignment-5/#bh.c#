@@ -1,0 +1,186 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "mpi.h"
+
+#include "barnesHut.c"
+
+double g_x_min = -1.0, g_x_max = 10000.0, g_y_min = -1.0, g_y_max = 10000.0;
+int numIterations, numTotalBodies, nLevels;
+float deltaTime;
+
+struct body* nBodies;
+int cSize, myRank;
+struct quadTree root;
+
+void readFile(const char* inputFileName)
+{
+  FILE *fp = fopen(inputFileName, "r");
+  int idx;
+
+  if (fp == NULL)
+  {
+    printf("Could not open inputFile: %s\n", inputFileName);
+    return;
+  }
+
+  fscanf(fp, "%d", &numTotalBodies);
+  nBodies = (struct body *)calloc(numTotalBodies, sizeof(struct body));
+  
+  for(idx = 0; idx < numTotalBodies; idx++)
+  {
+    fscanf(fp, "%lg", &nBodies[idx].x);
+    fscanf(fp, "%lg", &nBodies[idx].y);
+    fscanf(fp, "%lg", &nBodies[idx].wt);
+    fscanf(fp, "%lg", &nBodies[idx].vx);
+    fscanf(fp, "%lg", &nBodies[idx].vy);
+  }
+
+  fclose(fp);
+}
+
+void writeFile(const char* outputFileName)
+{
+  FILE* fp = fopen(outputFileName, "w");
+  int idx;
+
+  if (fp == NULL)
+  {
+    printf("Could not open outputFile: %s\n", outputFileName);
+    return;
+  }
+
+  fprintf(fp, "%d\n", numTotalBodies);
+  
+  for (idx = 0; idx < numTotalBodies; idx++)
+  {
+    fprintf(fp, "%lg %lg %lg %lg %lg\n", nBodies[idx].x, nBodies[idx].y, nBodies[idx].wt, nBodies[idx].vx, nBodies[idx].vy); 
+  }
+  
+  fclose(fp);
+}
+
+void calcuateLevels()
+{
+  nLevels = (int)ceil(log(numTotalBodies/10)/log(4));
+}
+
+void computeInteractionWithCM(struct body* aBody, const struct quadTree* tree)
+{
+  compute_accln(aBody, tree->x_cm, tree->y_cm, tree->wt_tot);
+}
+
+void computeInteractionWithAllBodies(struct body* aBody, const struct quadTree* tree)
+{
+  int idx;
+
+  for (idx = 0; idx < tree->numBodies; idx++)
+  {
+    compute_accln(aBody, tree->bodies[idx]->x, tree->bodies[idx]->y, tree->bodies[idx]->wt);
+  }
+}
+
+void computeInteraction(struct body* aBody, const struct quadTree* tree)
+{
+  if (multipole(&nBodies[idx], tree) < theta)
+  {
+    computeInteractionWithCM(aBody, tree);
+  }
+  else
+  {
+    if (tree->myLevel == 0)
+    {
+      computeInteractionWithAllBodies(aBody, tree);
+    }
+    else
+    {
+      for (idx = NW; idx <=SE; idx++)
+      {
+	computeInteraction(aBody, tree->childTree[idx]);
+      }
+    }
+  }
+}
+
+void parallelBarnesHut(const char* inputFileName, const char* outputFileName)
+{
+  int iter = 0, idx, startIdx, endIdx;
+
+  initTypes();
+
+  if (myRank == 0)
+    readFile(inputFileName);
+
+  MPI_Bcast(&numTotalBodies, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (myRank != 0)
+  {
+    nBodies = (struct body *)calloc(numTotalBodies, sizeof(struct body));
+  }
+
+  MPI_Bcast(&nBodies, numTotalBodies, MPI_INT, 0, MPI_COMM_WORLD);
+
+  calculateLevels();
+
+  while (iter < numIterations)
+  {
+    constructEmptyQuadTree(&root, nLevel);
+    
+    for (idx = 0; idx < numTotalBodies; idx++)
+    {
+      addBodyToQuadTree(nBodies[idx], &root);
+    }
+
+    startIdx = myRank * (numTotalBodies/cSize);
+    endIdx = (myRank + 1)*(numTotalBodies/cSize) - 1;
+    if (myRank == cSize - 1)
+      endIdx = numTotalBodies - 1;
+
+    for (idx = startIdx; idx <= endIdx; idx++)
+    {
+      computeInteraction(&nBodies[idx], &root);
+    }
+    
+    for (idx = startIdx; idx <= endIdx; idx++)
+    {
+      
+    }
+  }
+}
+
+int main(int _argc, char** _argv)
+{
+  int rc;
+  
+  rc = MPI_Init(&_argc, &_argv);
+  if (rc != MPI_SUCCESS)
+  {
+    printf("Error initializing MPI! rc = %d.\n", rc);
+    return -1;
+  }
+
+  MPI_Comm_size(MPI_COMM_WORLD, &cSize);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+
+  if (_argc != 5)
+  {
+    if (myRank == 0)
+    {
+      printf("Incorrect number of arguments!\n");
+      MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+    return -1;
+  }
+
+  numIterations = atoi(_argv[1]);
+  deltaTime = atof(_argv[2]);
+  
+  if (myRank == 0)
+  {
+    printf("[%d] - MPI Comm Size: %d Iterations: %d Timestep: %f\n", myRank, cSize, numIterations, deltaTime);
+  }
+
+  printf("[%d] - pid = %d\n", myRank, getpid());
+
+  parallelBarnesHut(_argv[3], _argv[4]);
+  MPI_Finalize();
+}

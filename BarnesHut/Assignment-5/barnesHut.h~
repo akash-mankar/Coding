@@ -1,0 +1,11 @@
+#pragma once
+
+struct body
+{
+  int x;
+  int y;
+  int mass;
+  int vx;
+  int vy;
+};
+
