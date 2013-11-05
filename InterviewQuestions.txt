@@ -1,0 +1,26 @@
+LinkedIn:
+1) Least common ancesstor
+2) Given a collection of data points, and a random point selected from  them and find the 100 closest points to this point:.
+	- approach: 
+		Many approaches possibles. brute force, get all the distances of all points from this point and sort them.
+		Efficient approach:  if you have infinite number of collections, make a min heap of say 100 closest points. as and when you find a distance,add it to
+		min heap and remove the existing point if heap size > 100
+3) Given an adjacency graph A of 0's and 1's 
+		if Aij  = 0  there is no edge from node i to node j
+		if Aij = 1 there is an outgoing edge from node i to node j
+	Question: find a node in the adjacency graph which has all incoming edges but no outgoing edge.
+	Hint: This is how the page rank algorithm works too.
+	Approach: Find a column with all 1's and for a j, and all 0's for a i. in a particular row. Xij is the node.
+
+Epic:
+1) Given an NxN matrix of a game of Tictactoe. Already played. Red vs Black
+	Any 3 consecutive Red's or Blacks is a win i.e. RRRR means 2 wins.
+	Traverse the entire matrix and figure out who has maximum wins: Red or Black:
+
+Shop kick:
+1) implement a hash table:
+	Key points: Think about the hash computer function	
+				Think about handling collisions.
+
+2) Given a matrix of 0's and 1's find out the largest subsquare matrix with maximum number of 1's.
+	Approach;: Dynamic programming
